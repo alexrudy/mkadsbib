@@ -1,4 +1,4 @@
-``mkbib.py`` - Make bibliography from LaTeX Source
+``mkadsbib.py`` - Make bibliography from LaTeX Source
 --------------------------------------------------
 
 This is a quick script to make bibliographies from LaTeX source, using the NASA Astrophysics Data Service to generate the appropriate BibTeX file. Just use the NASA ADS bibcodes in your cite commands.
