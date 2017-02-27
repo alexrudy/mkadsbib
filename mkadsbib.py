@@ -22,11 +22,12 @@ def main(sandbox, ads_api_key):
 @main.command()
 @click.argument('input', type=click.File(mode='r'))
 @click.option("-o", "--output", default=None, help="Output file name.")
-def transform(input):
+def query(input):
     """Transform a list of bibcodes to bib entries."""
     bibcodes = [line for line in input]
     with open_output(output, input.name, extension='.bib') as f:
         f.write(ads.ExportQuery(bibcodes).execute())
+    click.echo("Exported BibTeX to {0}.".format(f.name))
 
 def parse(lines, root="."):
     """Parse a line."""
@@ -61,8 +62,8 @@ def extract(input, output):
         with open_output(output, input.name, extension='.bbq') as f:
             for citation in parse(input):
                 f.write(citation)
-                f.write("\n")
-    
+                f.write("\n")]
+    click.echo("Extracted bibcodes from {0} into {1}.".format(input.name, f.name))
 
 @main.command()
 @click.option("-o", "--output", default=None, help="Output file name.")
