@@ -20,6 +20,6 @@ setup(name="mkadsbib",
       license="MIT",
       classifiers=mkadsbib_classifiers,
       entry_points={
-          'console_scripts': ['mkadsbib = mkadsbib.main']
+          'console_scripts': ['mkadsbib = mkadsbib:main']
       }
       )
