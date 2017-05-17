@@ -53,7 +53,7 @@ def find_aux_file(filename):
     auxout = os.path.join('latex.out', os.path.relpath(auxfile))
     if os.path.exists(auxout):
         return auxout
-    raise IOError("Can't locate .aux file for {0}".format(filename))
+    raise FileNotFoundError("Can't locate .aux file for {0}".format(filename))
     
 
 def get_aux_file(file_obj):
