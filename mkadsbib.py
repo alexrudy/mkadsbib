@@ -18,11 +18,11 @@ def main(sandbox, ads_api_key):
     else:
         import ads
     ads.config.token = ads_api_key
-    
+
 @main.command()
 @click.argument('input', type=click.File(mode='r'))
 @click.option("-o", "--output", default=None, help="Output file name.")
-def query(input):
+def query(input, output):
     """Transform a list of bibcodes to bib entries."""
     bibcodes = [line for line in input]
     with open_output(output, input.name, extension='.bib') as f:
@@ -54,7 +54,7 @@ def find_aux_file(filename):
     if os.path.exists(auxout):
         return auxout
     raise FileNotFoundError("Can't locate .aux file for {0}".format(filename))
-    
+
 
 def get_aux_file(file_obj):
     """Return an .aux file object."""
@@ -76,7 +76,7 @@ def extract(input, output):
     """Extract citations"""
     with closing(get_aux_file(input)) as aux_file:
         with open_output(output, input.name, extension='.bbq') as f:
-            for citation in sorted(parse(aux_file)):
+            for citation in sorted(set(parse(aux_file))):
                 f.write(citation)
                 f.write("\n")
     click.echo("Extracted bibcodes from {0} into {1}.".format(input.name, f.name))
