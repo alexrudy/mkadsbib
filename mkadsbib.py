@@ -18,16 +18,15 @@ def main(sandbox, ads_api_key):
     else:
         import ads
     ads.config.token = ads_api_key
-    
+
 @main.command()
 @click.argument('input', type=click.File(mode='r'))
 @click.option("-o", "--output", default=None, help="Output file name.")
-def query(input):
+def query(input, output):
     """Transform a list of bibcodes to bib entries."""
     bibcodes = [line for line in input]
-    with open_output(output, input.name, extension='.bib') as f:
-        f.write(ads.ExportQuery(bibcodes).execute())
-    click.echo("Exported BibTeX to {0}.".format(f.name))
+    outname = download_bibliography(bibcodes, output, input.name, extension='.bib')
+    click.echo("Exported BibTeX to {0}.".format(outname))
 
 
 def parse(lines, root="."):
@@ -54,7 +53,7 @@ def find_aux_file(filename):
     if os.path.exists(auxout):
         return auxout
     raise FileNotFoundError("Can't locate .aux file for {0}".format(filename))
-    
+
 
 def get_aux_file(file_obj):
     """Return an .aux file object."""
@@ -69,17 +68,42 @@ def open_output(output_name, input_name, extension, mode='w'):
         output_name = "{0}{1}".format(os.path.splitext(input_name)[0], extension)
     return open(output_name, mode)
 
+def get_bibcodes(input):
+    with closing(get_aux_file(input)) as aux_file:
+        return sorted(set(parse(aux_file, os.path.dirname(aux_file.name))))
+
+def save_bibcodes(bibcodes, output, input_name, extension='.bbq'):
+    with open_output(output, input_name, extension) as f:
+        for bibcode in bibcodes:
+            f.write(bibcode)
+            f.write("\n")
+    return f.name
+
+def download_bibliography(bibcodes, output, input_name, extension='.bib'):
+    with open_output(output, input_name, extension=extension) as f:
+        f.write(ads.ExportQuery(bibcodes).execute())
+    return f.name
+
 @main.command()
 @click.option("-o", "--output", default=None, help="Output file name.")
 @click.argument('input', type=click.File(mode='r'))
 def extract(input, output):
-    """Extract citations"""
-    with closing(get_aux_file(input)) as aux_file:
-        with open_output(output, input.name, extension='.bbq') as f:
-            for citation in sorted(parse(aux_file)):
-                f.write(citation)
-                f.write("\n")
+    """Extract citations from an .aux file."""
+    save_bibcodes(get_bibcodes(input), output, input.name, extension='.bbq')
     click.echo("Extracted bibcodes from {0} into {1}.".format(input.name, f.name))
+
+@main.command(name='extract-all')
+@click.option("-o","--output", default=None, help="Output file name.")
+@click.argument('input', type=click.File(mode='r'), nargs=-1)
+def extract_all(input, output):
+    "Extract bibcodes from many aux files."
+    bibcodes = set()
+    for infile in input:
+        click.echo("Gathering bibcodes from {0}".format(infile.name))
+        bibcodes.update(get_bibcodes(infile))
+    outfile = save_bibcodes(sorted(bibcodes), output, input[0].name, extension='.bbq')
+    click.echo("Saved bibcodes to {0}".format(outfile))
+
 
 @main.command()
 @click.option("-o", "--output", default=None, help="Output file name.")
@@ -87,18 +111,14 @@ def extract(input, output):
 @click.argument('input', type=click.File(mode='r'))
 def make(input, output, bbq):
     """Make bibliography in one go."""
-    with closing(get_aux_file(input)) as aux_file:
-        bibcodes = sorted(set(parse(aux_file, os.path.dirname(aux_file.name))))
-        click.echo("Extracted {0} bibcodes from {1}".format(len(bibcodes), aux_file.name))
+    bibcodes = get_bibcodes(input)
+    click.echo("Extracted {0} bibcodes from {1}".format(len(bibcodes), aux_file.name))
     if bbq:
-        with open_output(output, input.name, extension='.bbq') as f:
-            for bibcode in bibcodes:
-                f.write(bibcode)
-                f.write("\n")
-    with open_output(output, input.name, extension=".bib") as f:
-        click.echo("Downloading bibliography to {0}".format(f.name))
-        f.write(ads.ExportQuery(bibcodes).execute())
-        click.echo("Wrote bibliography to {0}".format(f.name))
+        bbq_name = save_bibcodes(bibcodes, output, input.name, extension='.bbq')
+        click.echo("Saved bibliography codes to {0}".format(bbq_name))
+    click.echo("Downloading bibliography")
+    outname = download_bibliography(bibcodes, output, input.name, extension='.bib')
+    click.echo("Wrote bibliography to {0}".format(outname))
 
 if __name__ == '__main__':
     main()
